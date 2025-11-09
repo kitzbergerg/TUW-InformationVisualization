@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monthly Temperature Heatmap</title>
+    <!-- 1. Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 2. Load Plotly.js (for the map) -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- 3. Load D3.js (for loading CSV and data manipulation) -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        /* Custom font */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Ensure Plotly chart resizes */
+        #map {
+            width: 100%;
+            height: 60vh;
+        }
+        /* Style select dropdowns for dark mode */
+        select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200 h-full flex flex-col items-center p-4 md:p-8">
+
+    <div class="w-full max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold text-center text-white mb-2">Global Temperature Anomaly</h1>
+        <h2 class="text-xl text-gray-400 text-center mb-6">Average 2m Temperature by Country</h2>
+
+        <!-- Controls -->
+        <div class="flex flex-col md:flex-row justify-center items-center gap-4 mb-6 p-4 bg-gray-800 rounded-lg shadow-lg">
+            <div class="flex items-center gap-2">
+                <label for="yearSelect" class="font-medium text-gray-300">Year:</label>
+                <select id="yearSelect" class="bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"></select>
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="monthSelect" class="font-medium text-gray-300">Month:</label>
+                <select id="monthSelect" class="bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"></select>
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="dataTypeSelect" class="font-medium text-gray-300">Data Type:</label>
+                <select id="dataTypeSelect" class="bg-gray-700 border border-gray-600 text-white rounded-md p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"></select>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div id="mapContainer" class="bg-gray-800 rounded-lg shadow-2xl p-2 md:p-4">
+            <div id="map"></div>
+        </div>
+
+        <!-- Loading/Error Message -->
+        <div id="message" class="text-center text-lg text-gray-400 mt-4"></div>
+    </div>
+
+    <script>
+        const mapDiv = document.getElementById('map');
+        const yearSelect = document.getElementById('yearSelect');
+        const monthSelect = document.getElementById('monthSelect');
+        const dataTypeSelect = document.getElementById('dataTypeSelect');
+        const messageEl = document.getElementById('message');
+
+        let fullData = [];
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+        // --- Main function to initialize the dashboard ---
+        async function init() {
+            try {
+                messageEl.textContent = 'Loading data... (This may take a moment)';
+
+                // 1. Load and parse data
+                const data = await d3.csv("../data/country_monthly_temperatures.csv");
+
+                if (data.length === 0) {
+                    throw new Error("CSV file is empty or could not be loaded.");
+                }
+
+                // Parse data types
+                fullData = data.map(d => ({
+                    year: +d.year,
+                    month: +d.month,
+                    country: d.country, // This should be ISO-3
+                    temp: +d.temperature_celsius
+                }));
+
+                // 2. Populate dropdowns
+                populateSelectors();
+
+                // 3. Add event listeners
+                yearSelect.addEventListener('change', updateMap);
+                monthSelect.addEventListener('change', updateMap);
+
+                // 4. Draw initial map
+                updateMap();
+                messageEl.textContent = ''; // Clear loading message
+
+            } catch (error) {
+                console.error("Error initializing dashboard:", error);
+                messageEl.textContent = `Error: Could not load data from 'country_monthly_temperatures.csv'. ${error.message}`;
+                mapContainer.style.display = 'none';
+            }
+        }
+
+        // --- Populates Year and Month dropdowns ---
+        function populateSelectors() {
+            // Get unique years
+            const years = [...new Set(fullData.map(d => d.year))].sort((a, b) => b - a); // Descending
+            years.forEach(year => {
+                const option = new Option(year, year);
+                yearSelect.add(option);
+            });
+
+            // Populate months
+            monthNames.forEach((name, index) => {
+                const option = new Option(name, index + 1);
+                monthSelect.add(option);
+            });
+
+            // Set to most recent date
+            yearSelect.value = years[0];
+            const mostRecentMonth = Math.max(...fullData.filter(d => d.year == years[0]).map(d => d.month));
+            monthSelect.value = mostRecentMonth;
+
+            dataTypeSelect.add(new Option('Temperature', 'temperature'));
+            dataTypeSelect.value = 'temperature';
+        }
+
+        // --- Filters data and redraws the Plotly map ---
+        function updateMap() {
+            const selectedYear = +yearSelect.value;
+            const selectedMonth = +monthSelect.value;
+
+            // Filter data for the selected date
+            const filteredData = fullData.filter(d =>
+                d.year === selectedYear && d.month === selectedMonth
+            );
+
+            if (filteredData.length === 0) {
+                messageEl.textContent = `No data available for ${monthNames[selectedMonth-1]} ${selectedYear}.`;
+                Plotly.purge(mapDiv); // Clear the map
+                return;
+            } else {
+                messageEl.textContent = ''; // Clear message
+            }
+
+            // Prepare data for Plotly
+            const mapData = [{
+                type: 'choropleth',
+                locationmode: 'ISO-3',
+                locations: filteredData.map(d => d.country),
+                z: filteredData.map(d => d.temp),
+                text: filteredData.map(d => `${d.country}: ${d.temp.toFixed(2)} °C`),
+                hoverinfo: 'text',
+                colorscale: 'RdBu_r', // Red-Blue reversed (Red=Hot, Blue=Cold)
+                zmid: 0, // Center color scale around 0°C
+                zmin: -30,
+                zmax: 30,
+                colorbar: {
+                    title: 'Temp (°C)',
+                    bgcolor: 'rgba(0,0,0,0)',
+                    titlefont: { color: '#d1d5db' },
+                    tickfont: { color: '#9ca3af' }
+                }
+            }];
+
+            // Define map layout
+            const layout = {
+                title: `Avg. Temperature - ${monthNames[selectedMonth-1]} ${selectedYear}`,
+                titlefont: { color: '#f9fafb', size: 18 },
+                geo: {
+                    projection: { type: 'robinson' },
+                    bgcolor: 'rgba(0,0,0,0)',
+                    showland: true,
+                    landcolor: '#4b5563', // gray-600
+                    showocean: true,
+                    oceancolor: '#1f2937', // gray-800
+                    showlakes: true,
+                    lakecolor: '#1f2937', // gray-800
+                    showcountries: true,
+                    countrycolor: '#6b7280', // gray-500
+                    coastlinecolor: '#6b7280'
+                },
+                paper_bgcolor: 'rgba(0,0,0,0)', // transparent bg
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                margin: { l: 0, r: 0, t: 40, b: 0 } // Adjust margins
+            };
+
+            const config = { responsive: true };
+
+            // Draw the map
+            Plotly.react(mapDiv, mapData, layout, config);
+        }
+
+        // --- Run the app ---
+        init();
+    </script>
+
+</body>
+</html>
