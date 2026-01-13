@@ -12,17 +12,17 @@ let appState = {
  * Mapping of variable keys to their specific Global CSV file paths.
  */
 const variableFiles = {
-    "2t": "data/global/country_avg_2t.csv",
-    "tp": "data/global/country_avg_tp.csv",
-    "10si": "data/global/country_avg_10si.csv",
-    "2d": "data/global/country_avg_2d.csv",
-    "swvl1": "data/global/country_avg_swvl1.csv",
-    "sde": "data/global/country_avg_sde.csv",
-    "sf": "data/global/country_avg_sf.csv",
-    "skt": "data/global/country_avg_skt.csv",
-    "ssr": "data/global/country_avg_ssr.csv",
-    "slhf": "data/global/country_avg_slhf.csv",
-    "sshf": "data/global/country_avg_sshf.csv"
+    "2t": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_2t.csv",
+    "tp": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_tp.csv",
+    "10si": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_10si.csv",
+    "2d": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_2d.csv",
+    "swvl1": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_swvl1.csv",
+    "sde": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sde.csv",
+    "sf": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sf.csv",
+    "skt": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_skt.csv",
+    "ssr": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_ssr.csv",
+    "slhf": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_slhf.csv",
+    "sshf": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sshf.csv"
 };
 
 /**
@@ -60,7 +60,7 @@ function createFilterPanel() {
             .attr("id", "chk-" + key)
             .attr("value", key)
             .property("checked", key === "2t") // Default to Temperature
-            .on("change", function() {
+            .on("change", function () {
                 updateMapVariable(key);
             });
         div.append("label").attr("for", "chk-" + key).text(" " + label);
@@ -124,7 +124,7 @@ Promise.all([
         console.log("Country selected:", appState.selectedCountry);
         d3.select("#pc-container").style("display", "block");
         d3.select("#line-container").style("display", "block");
-        const csvPath = `data/countries/era5_monthly_${appState.selectedCountry}.csv`;
+        const csvPath = `https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/countries/era5_monthly_${appState.selectedCountry}.csv`;
         d3.csv(csvPath).then(data => {
             appState.fullCountryData = data;
             // Update Map (Switch to detailed gradient view)
@@ -140,7 +140,7 @@ Promise.all([
 
     // 3. Setup Event Listener: Date Changed (Linking History -> Map/PC)
     window.addEventListener('dateChanged', (e) => {
-        const { year, month } = e.detail;
+        const {year, month} = e.detail;
         console.log(`Filtering views for Year: ${year}, Month: ${month}`);
 
         if (appState.fullCountryData.length > 0) {

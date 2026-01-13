@@ -327,7 +327,7 @@
         if (state.cache.csvData[filename]) {
             return state.cache.csvData[filename];
         }
-        const data = await d3.csv(`data/global/${filename}`);
+        const data = await d3.csv(`https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/${filename}`);
         state.cache.csvData[filename] = data.map(d => ({
             year: +d.year,
             month: +d.month,

@@ -10,5 +10,3 @@ wheels/
 .venv
 .idea
 /data/
-/src/data/countries/
-/src/data/global/
