@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Weather Insights</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- D3.js -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #111827;
+            color: #e5e7eb;
+            min-height: 100vh;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            padding: 1rem;
+            min-height: 100vh;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            background: #1f2937;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .map-container {
+            height: 500px;
+            min-height: 400px;
+        }
+
+        .chart-container {
+            height: 350px;
+            min-height: 300px;
+        }
+
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(31, 41, 55, 0.95);
+            padding: 12px 16px;
+            border-radius: 8px;
+            z-index: 100;
+            font-size: 12px;
+            border: 1px solid rgba(107, 114, 128, 0.5);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+        }
+
+        .legend-gradient {
+            width: 100%;
+            height: 20px;
+            border-radius: 4px;
+            margin: 8px 0 4px 0;
+            border: 1px solid rgba(107, 114, 128, 0.3);
+        }
+
+        .legend-scale {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #9ca3af;
+            margin-top: 2px;
+        }
+
+        .country-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .country-modal.active {
+            display: flex;
+        }
+
+        .country-modal-content {
+            background: #1f2937;
+            border-radius: 12px;
+            padding: 24px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(107, 114, 128, 0.3);
+        }
+
+        .country-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid rgba(107, 114, 128, 0.3);
+        }
+
+        .country-modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #f3f4f6;
+        }
+
+        .country-modal-close {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .country-modal-close:hover {
+            background: rgba(107, 114, 128, 0.2);
+            color: #f3f4f6;
+        }
+
+        select {
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        @media (min-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 3fr 1.2fr;
+                grid-template-rows: auto auto;
+            }
+
+            .map-container {
+                grid-column: 1;
+                grid-row: 1 / 3;
+                height: auto;
+                min-height: 600px;
+            }
+
+            .history-container {
+                grid-column: 2;
+                grid-row: 1;
+            }
+
+            .parallel-container {
+                grid-column: 2;
+                grid-row: 2;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="w-full">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-gray-800 to-gray-900 border-b border-gray-700 px-4 md:px-6 py-4 md:py-6">
+        <h1 class="text-2xl md:text-3xl font-bold text-white mb-1">Global Weather Insights</h1>
+        <p class="text-gray-400 text-sm md:text-base">26 years of historical climate data • Interactive
+            visualization</p>
+    </div>
+
+    <!-- Controls -->
+    <div class="bg-gray-800 border-b border-gray-700 px-4 md:px-6 py-3 md:py-4 sticky top-0 z-40">
+        <div class="flex flex-wrap gap-3 md:gap-4">
+            <div class="flex items-center gap-2">
+                <label for="yearSelect" class="font-medium text-gray-300 text-sm whitespace-nowrap">Year:</label>
+                <select id="yearSelect"
+                        class="bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"></select>
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="monthSelect" class="font-medium text-gray-300 text-sm whitespace-nowrap">Month:</label>
+                <select id="monthSelect"
+                        class="bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"></select>
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="dataTypeSelect"
+                       class="font-medium text-gray-300 text-sm whitespace-nowrap">Variable:</label>
+                <select id="dataTypeSelect"
+                        class="bg-gray-700 border border-gray-600 text-white rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none"></select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-grid">
+        <!-- Map -->
+        <div class="chart-wrapper map-container">
+            <div id="map" style="width: 100%; height: 100%;"></div>
+            <div class="legend" id="legend" style="display: none;">
+                <div class="font-semibold text-gray-200 mb-2" id="legend-title">Temperature</div>
+                <div id="legend-content"></div>
+            </div>
+        </div>
+
+        <!-- History Chart -->
+        <div class="chart-wrapper chart-container history-container">
+            <div id="history-chart" style="width: 100%; height: 100%;"></div>
+        </div>
+
+        <!-- Parallel Coords -->
+        <div class="chart-wrapper chart-container parallel-container">
+            <div id="parallel-coords" style="width: 100%; height: 100%;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Country Detail Modal -->
+<div class="country-modal" id="countryModal">
+    <div class="country-modal-content">
+        <div class="country-modal-header">
+            <div class="country-modal-title" id="countryModalTitle">Country Details</div>
+            <button class="country-modal-close" onclick="closeCountryModal()">&times;</button>
+        </div>
+        <div id="country-detail-chart" style="width: 100%; height: 400px;"></div>
+        <div id="country-stats"
+             style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(107,114,128,0.3);"></div>
+    </div>
+</div>
+
+<script>
+    const state = {
+        fullData: [],
+        selectedYear: null,
+        selectedMonth: null,
+        selectedVariable: null,
+        cache: {
+            csvData: {},
+            processedData: {}
+        }
+    };
+
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const variableConfig = {
+        '2t': {name: 'Temperature', file: 'country_avg_2t.csv', unit: '°C', min: -50, max: 40, scale: 'RdBu_r'},
+        '2d': {name: 'Dewpoint Temperature', file: 'country_avg_2d.csv', unit: '°C', min: -50, max: 40, scale: 'RdBu'},
+        'skt': {
+            name: 'Skin Temperature',
+            file: 'country_avg_skt.csv',
+            unit: '°C',
+            min: -50,
+            max: 50,
+            scale: 'RdYlBu_r'
+        },
+        '10si': {name: 'Wind Speed', file: 'country_avg_10si.csv', unit: 'm/s', min: 0, max: 10, scale: 'Viridis'},
+        'tp': {name: 'Precipitation', file: 'country_avg_tp.csv', unit: 'mm', min: 0, max: 10, scale: 'Blues'},
+        'sde': {name: 'Snow Depth', file: 'country_avg_sde.csv', unit: 'm', min: 0, max: 30, scale: 'Greys'},
+        'sf': {name: 'Snowfall', file: 'country_avg_sf.csv', unit: 'm', min: 0, max: 1, scale: 'Greys'},
+        'swvl1': {name: 'Soil Water', file: 'country_avg_swvl1.csv', unit: 'fraction', min: 0, max: 1, scale: 'Greens'},
+        'ssr': {
+            name: 'Solar Radiation',
+            file: 'country_avg_ssr.csv',
+            unit: 'MJ/m²',
+            min: 0,
+            max: 25000000,
+            scale: 'YlOrRd_r'
+        },
+        'slhf': {
+            name: 'Latent Heat Flux',
+            file: 'country_avg_slhf.csv',
+            unit: 'W/m²',
+            min: -15000000,
+            max: 200000,
+            scale: 'RdBu_r'
+        },
+        'sshf': {
+            name: 'Sensible Heat Flux',
+            file: 'country_avg_sshf.csv',
+            unit: 'W/m²',
+            min: -15000000,
+            max: 5000000,
+            scale: 'RdBu_r'
+        }
+    };
+
+    function kelvinToCelsius(kelvin) {
+        return kelvin - 273.15;
+    }
+
+    async function loadCSV(filename) {
+        if (state.cache.csvData[filename]) {
+            return state.cache.csvData[filename];
+        }
+        const data = await d3.csv(`data/global/${filename}`);
+        state.cache.csvData[filename] = data.map(d => ({
+            year: +d.year,
+            month: +d.month,
+            country_code: d.country_code,
+            value: +d.value
+        }));
+        return state.cache.csvData[filename];
+    }
+
+    function formatValue(value, variable) {
+        const config = variableConfig[variable];
+        if (!config) return value.toFixed(2);
+
+        let converted = value;
+        if (variable === 'tp') {
+            converted *= 1000;
+        } else if (variable === '2t' || variable === '2d' || variable === 'skt') {
+            converted = kelvinToCelsius(converted);
+        }
+
+        return converted.toFixed(2) + ' ' + config.unit;
+    }
+
+    function closeCountryModal() {
+        document.getElementById('countryModal').classList.remove('active');
+    }
+
+    async function showCountryDetails(countryCode) {
+        const variable = state.selectedVariable;
+        const config = variableConfig[variable];
+        const csvData = state.cache.csvData[config.file];
+
+        // Filter data for this country
+        const countryData = csvData.filter(d => d.country_code === countryCode).sort((a, b) => {
+            if (a.year !== b.year) return a.year - b.year;
+            return a.month - b.month;
+        });
+
+        if (countryData.length === 0) return;
+
+        // Prepare time series data
+        const timeLabels = countryData.map((d, i) => {
+            const monthStr = monthNames[d.month - 1].substring(0, 3);
+            return d.month === 1 ? d.year : monthStr;
+        });
+
+        const values = countryData.map(d => {
+            let val = d.value;
+            if (variable === 'tp') {
+                val *= 1000;
+            } else if (variable === '2t' || variable === '2d' || variable === 'skt') {
+                val = kelvinToCelsius(val);
+            }
+            return val;
+        });
+
+        const trace = {
+            x: timeLabels,
+            y: values,
+            mode: 'lines+markers',
+            line: {color: '#3b82f6', width: 2},
+            marker: {size: 4, color: '#1e40af'},
+            fill: 'tozeroy',
+            fillcolor: 'rgba(59, 130, 246, 0.1)',
+            hovertemplate: '%{x}<br>%{y:.2f} ' + config.unit + '<extra></extra>'
+        };
+
+        const layout = {
+            title: {text: `${config.name} Over Time`, font: {color: '#f3f4f6', size: 14}},
+            xaxis: {title: '', color: '#9ca3af', gridcolor: 'rgba(107,114,128,0.2)'},
+            yaxis: {title: config.unit, color: '#9ca3af', gridcolor: 'rgba(107,114,128,0.2)'},
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            margin: {l: 45, r: 15, t: 30, b: 40},
+            hovermode: 'x unified'
+        };
+
+        Plotly.react('country-detail-chart', [trace], layout, {responsive: true, displayModeBar: false});
+
+        // Calculate and display statistics
+        const currentYearData = countryData.filter(d => d.year === state.selectedYear);
+        const allTimeAvg = values.reduce((a, b) => a + b) / values.length;
+        const currentValue = currentYearData.length > 0 ?
+            (currentYearData.reduce((sum, d) => {
+                let val = d.value;
+                if (variable === 'tp') {
+                    val *= 1000;
+                } else if (variable === '2t' || variable === '2d' || variable === 'skt') {
+                    val = kelvinToCelsius(val);
+                }
+                return sum + val;
+            }, 0) / currentYearData.length) : 0;
+
+        document.getElementById('countryModalTitle').textContent = `${countryCode} • ${config.name}`;
+        document.getElementById('country-stats').innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div style="background: rgba(59, 130, 246, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.3);">
+                        <div style="font-size: 12px; color: #9ca3af;">Current Year Average</div>
+                        <div style="font-size: 18px; font-weight: 600; color: #3b82f6; margin-top: 4px;">${currentValue.toFixed(2)} ${config.unit}</div>
+                    </div>
+                    <div style="background: rgba(107, 114, 128, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(107, 114, 128, 0.3);">
+                        <div style="font-size: 12px; color: #9ca3af;">All-Time Average</div>
+                        <div style="font-size: 18px; font-weight: 600; color: #d1d5db; margin-top: 4px;">${allTimeAvg.toFixed(2)} ${config.unit}</div>
+                    </div>
+                </div>
+            `;
+
+        document.getElementById('countryModal').classList.add('active');
+    }
+
+    async function init() {
+        try {
+            const firstVar = '2t';
+            const csvData = await loadCSV(variableConfig[firstVar].file);
+
+            const years = [...new Set(csvData.map(d => d.year))].sort((a, b) => b - a);
+            state.selectedYear = years[0];
+            state.selectedMonth = 1;
+            state.selectedVariable = firstVar;
+
+            populateSelectors(years);
+
+            document.getElementById('yearSelect').addEventListener('change', () => {
+                state.selectedYear = +document.getElementById('yearSelect').value;
+                updateAllCharts();
+            });
+            document.getElementById('monthSelect').addEventListener('change', () => {
+                state.selectedMonth = +document.getElementById('monthSelect').value;
+                updateAllCharts();
+            });
+            document.getElementById('dataTypeSelect').addEventListener('change', () => {
+                state.selectedVariable = document.getElementById('dataTypeSelect').value;
+                updateAllCharts();
+            });
+
+            for (const variable in variableConfig) {
+                await loadCSV(variableConfig[variable].file);
+            }
+
+            updateAllCharts();
+
+        } catch (error) {
+            console.error("Error initializing:", error);
+        }
+    }
+
+    function populateSelectors(years) {
+        const yearSelect = document.getElementById('yearSelect');
+        const monthSelect = document.getElementById('monthSelect');
+        const dataTypeSelect = document.getElementById('dataTypeSelect');
+
+        years.forEach(year => {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            yearSelect.appendChild(option);
+        });
+        yearSelect.value = state.selectedYear;
+
+        monthNames.forEach((name, index) => {
+            const option = document.createElement('option');
+            option.value = index + 1;
+            option.textContent = name;
+            monthSelect.appendChild(option);
+        });
+        monthSelect.value = state.selectedMonth;
+
+        for (const variable in variableConfig) {
+            const option = document.createElement('option');
+            option.value = variable;
+            option.textContent = variableConfig[variable].name;
+            dataTypeSelect.appendChild(option);
+        }
+        dataTypeSelect.value = state.selectedVariable;
+    }
+
+    async function updateMap() {
+        const variable = state.selectedVariable;
+        const config = variableConfig[variable];
+        const csvData = state.cache.csvData[config.file];
+
+        if (!csvData) {
+            console.error("CSV data not loaded for", variable);
+            return;
+        }
+
+        const filteredData = csvData.filter(d =>
+            d.year === state.selectedYear && d.month === state.selectedMonth
+        );
+
+        if (filteredData.length === 0) {
+            console.log("No data for", state.selectedYear, state.selectedMonth);
+            return;
+        }
+
+        let processedData = filteredData.map(d => ({
+            ...d,
+            displayValue:
+                variable === '2t' || variable === '2d' || variable === 'skt'
+                    ? kelvinToCelsius(d.value)
+                    : variable === 'tp' ?
+                        d.value *= 1000
+                        : d.value
+        }));
+
+        if (variable === 'tp' || variable === 'sf' || variable === 'sde') {
+            processedData = processedData.map(d => ({
+                ...d,
+                displayValue: d.displayValue * 1000
+            }));
+        }
+
+        const mapData = [{
+            type: 'choropleth',
+            locationmode: 'ISO-3',
+            locations: processedData.map(d => d.country_code),
+            z: processedData.map(d => d.displayValue),
+            text: processedData.map(d =>
+                `${d.country_code}<br>${formatValue(d.value, variable)}`
+            ),
+            hoverinfo: 'text',
+            colorscale: config.scale,
+            zmin: config.min,
+            zmax: config.max,
+            zmid: (config.min + config.max) / 2,
+            colorbar: {
+                title: config.unit,
+                bgcolor: 'rgba(0,0,0,0)',
+                bordercolor: '#6b7280',
+                thickness: 15,
+                len: 0.7,
+                titlefont: {color: '#d1d5db', size: 11},
+                tickfont: {color: '#9ca3af', size: 10}
+            }
+        }];
+
+        const layout = {
+            title: {
+                text: `${config.name} • ${monthNames[state.selectedMonth - 1]} ${state.selectedYear}`,
+                font: {color: '#f3f4f6', size: 15}
+            },
+            geo: {
+                projection: {type: 'natural earth'},
+                bgcolor: 'rgba(17,24,39,0.7)',
+                showland: true,
+                landcolor: 'rgba(55,65,81,0.7)',
+                showocean: true,
+                oceancolor: 'rgba(30,41,59,0.9)',
+                showlakes: true,
+                lakecolor: 'rgba(30,41,59,0.9)',
+                showcountries: true,
+                countrywidth: 0.5,
+                countrycolor: 'rgba(107,114,128,0.5)',
+                coastlinewidth: 0.7,
+                coastlinecolor: 'rgba(107,114,128,0.6)',
+                resolution: 110,
+                scope: 'world'
+            },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            margin: {l: 0, r: 0, t: 40, b: 0},
+            hovermode: 'closest'
+        };
+
+        const mapConfig = {responsive: true, displayModeBar: false};
+        Plotly.react('map', mapData, layout, mapConfig);
+        updateLegend(variable, config);
+
+        // Add click handler for countries with a small delay to ensure map is rendered
+        setTimeout(() => {
+            const mapElement = document.getElementById('map');
+            if (mapElement) {
+                mapElement.on('plotly_click', (data) => {
+                    const countryCode = data.points[0].location;
+                    showCountryDetails(countryCode);
+                });
+                // Add pointer cursor to indicate clickability
+                mapElement.style.cursor = 'pointer';
+            }
+        }, 100);
+    }
+
+    function updateLegend(variable, config) {
+        const legendDiv = document.getElementById('legend');
+        const legendTitle = document.getElementById('legend-title');
+        const legendContent = document.getElementById('legend-content');
+
+        legendTitle.textContent = config.name;
+
+        // Color scale mapping for different scales
+        const colorScales = {
+            'RdBu_r': ['#d73027', '#fc8d59', '#fee090', '#91bfdb', '#4575b4'],
+            'Blues': ['#f7fbff', '#deebf7', '#9ecae1', '#3182bd', '#08519c'],
+            'Greys': ['#ffffff', '#f0f0f0', '#bdbdbd', '#636363', '#252525'],
+            'Viridis': ['#440154', '#31688e', '#35b779', '#fde724', '#fde724'],
+            'Greens': ['#f7fcf5', '#e5f5e0', '#a1d99b', '#238b45', '#005a32'],
+            'YlOrRd': ['#ffffcc', '#ffeda0', '#fed976', '#fd8d3c', '#e31a1c'],
+            'RdYlBu_r': ['#d73027', '#fee090', '#ffffbf', '#91bfdb', '#4575b4']
+        };
+
+        const colors = colorScales[config.scale] || ['#f7fbff', '#3182bd'];
+        const gradientStops = colors.map((c, i) => `${c} ${(i / (colors.length - 1)) * 100}%`).join(', ');
+
+        legendContent.innerHTML = `
+                <div class="legend-gradient" style="background: linear-gradient(to right, ${gradientStops});"></div>
+                <div class="legend-scale">
+                    <span>${config.min.toFixed(0)}</span>
+                    <span style="text-align: center; flex: 1;">${((config.min + config.max) / 2).toFixed(0)}</span>
+                    <span style="text-align: right;">${config.max.toFixed(0)}</span>
+                </div>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 6px;">${config.unit}</div>
+            `;
+        legendDiv.style.display = 'block';
+    }
+
+    async function updateHistoryChart() {
+        const variable = state.selectedVariable;
+        const config = variableConfig[variable];
+        const csvData = state.cache.csvData[config.file];
+
+        const worldAvg = csvData.reduce((acc, d) => {
+            if (!acc[d.year]) acc[d.year] = [];
+            acc[d.year].push(d.value);
+            return acc;
+        }, {});
+
+        const years = Object.keys(worldAvg).map(Number).sort((a, b) => a - b);
+        const avgValues = years.map(year => {
+            const vals = worldAvg[year];
+            let avg = vals.reduce((a, b) => a + b) / vals.length;
+            if (variable === 'tp') {
+                avg *= 1000;
+            } else if (variable === '2t' || variable === '2d' || variable === 'skt') {
+                avg = kelvinToCelsius(avg);
+            }
+            return avg;
+        });
+
+        const trace = {
+            x: years,
+            y: avgValues,
+            mode: 'lines+markers',
+            name: 'Global Average',
+            line: {color: '#3b82f6', width: 2},
+            marker: {size: 5, color: '#1e40af'},
+            fill: 'tozeroy',
+            fillcolor: 'rgba(59, 130, 246, 0.1)',
+            hovertemplate: '<b>%{x}</b><br>%{y:.2f} ' + config.unit + '<extra></extra>'
+        };
+
+        const selectedYearData = {
+            x: [state.selectedYear],
+            y: [avgValues[years.indexOf(state.selectedYear)]],
+            mode: 'markers',
+            marker: {size: 10, color: '#ef4444', symbol: 'diamond'},
+            showlegend: false,
+            hovertemplate: '%{y:.2f} ' + config.unit + '<extra></extra>'
+        };
+
+        const layout = {
+            title: {text: 'Global Trend', font: {color: '#f3f4f6', size: 14}},
+            xaxis: {title: 'Year', color: '#9ca3af', gridcolor: 'rgba(107,114,128,0.2)', zeroline: false},
+            yaxis: {title: config.unit, color: '#9ca3af', gridcolor: 'rgba(107,114,128,0.2)'},
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            margin: {l: 45, r: 15, t: 40, b: 40},
+            hovermode: 'x unified'
+        };
+
+        Plotly.react('history-chart', [trace, selectedYearData], layout, {responsive: true, displayModeBar: false});
+
+        document.getElementById('history-chart').on('plotly_click', (data) => {
+            const point = data.points[0];
+            const yearClicked = point.x;
+            document.getElementById('yearSelect').value = yearClicked;
+            state.selectedYear = yearClicked;
+            updateAllCharts();
+        });
+    }
+
+    async function updateParallelCoords() {
+        const variable = state.selectedVariable;
+        const config = variableConfig[variable];
+        const csvData = state.cache.csvData[config.file];
+
+        const filtered = csvData.filter(d =>
+            d.year === state.selectedYear && d.month === state.selectedMonth
+        );
+
+        if (filtered.length === 0) {
+            Plotly.react('parallel-coords', [], {title: ''});
+            return;
+        }
+
+        const sorted = filtered.sort((a, b) => b.value - a.value).slice(0, 20);
+        const displayValues = sorted.map(d => {
+            let val = d.value;
+            if (variable === 'tp') {
+                val *= 1000;
+            } else if (variable === '2t' || variable === '2d' || variable === 'skt') {
+                val = kelvinToCelsius(val);
+            }
+            return val;
+        });
+
+        const trace = {
+            type: 'bar',
+            y: sorted.map(d => d.country_code),
+            x: displayValues,
+            orientation: 'h',
+            marker: {color: '#3b82f6'},
+            hovertemplate: '%{y}: %{x:.2f} ' + config.unit + '<extra></extra>'
+        };
+
+        const layout = {
+            title: {text: 'Top 20 Countries', font: {color: '#f3f4f6', size: 14}},
+            xaxis: {color: '#9ca3af', gridcolor: 'rgba(107,114,128,0.2)'},
+            yaxis: {color: '#9ca3af'},
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            margin: {l: 100, r: 15, t: 40, b: 40}
+        };
+
+        Plotly.react('parallel-coords', [trace], layout, {responsive: true, displayModeBar: false});
+    }
+
+    async function updateAllCharts() {
+        await Promise.all([
+            updateMap(),
+            updateHistoryChart(),
+            updateParallelCoords()
+        ]);
+    }
+
+    init();
+</script>
+
+</body>
+</html>
