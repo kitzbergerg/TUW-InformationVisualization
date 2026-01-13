@@ -12,17 +12,17 @@ let appState = {
  * Mapping of variable keys to their specific Global CSV file paths.
  */
 const variableFiles = {
-    "2t": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_2t.csv",
-    "tp": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_tp.csv",
-    "10si": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_10si.csv",
-    "2d": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_2d.csv",
-    "swvl1": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_swvl1.csv",
-    "sde": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sde.csv",
-    "sf": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sf.csv",
-    "skt": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_skt.csv",
-    "ssr": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_ssr.csv",
-    "slhf": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_slhf.csv",
-    "sshf": "https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sshf.csv"
+    "2t": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_2t.csv",
+    "tp": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_tp.csv",
+    "10si": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_10si.csv",
+    "2d": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_2d.csv",
+    "swvl1": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_swvl1.csv",
+    "sde": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sde.csv",
+    "sf": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sf.csv",
+    "skt": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_skt.csv",
+    "ssr": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_ssr.csv",
+    "slhf": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_slhf.csv",
+    "sshf": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sshf.csv"
 };
 
 /**
@@ -124,7 +124,7 @@ Promise.all([
         console.log("Country selected:", appState.selectedCountry);
         d3.select("#pc-container").style("display", "block");
         d3.select("#line-container").style("display", "block");
-        const csvPath = `https://raw.githubusercontent.com/kitzbergerg/TUW-InformationVisualization/main/src/data/countries/era5_monthly_${appState.selectedCountry}.csv`;
+        const csvPath = `https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/countries/era5_monthly_${appState.selectedCountry}.csv`;
         d3.csv(csvPath).then(data => {
             appState.fullCountryData = data;
             // Update Map (Switch to detailed gradient view)
