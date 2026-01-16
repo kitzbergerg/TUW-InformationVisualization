@@ -11,17 +11,17 @@ window.appState = {
 };
 
 const variableFiles = {
-    "2t": "../data/global/country_avg_2t.csv",
-    "tp": "../data/global/country_avg_tp.csv",
-    "10si": "../data/global/country_avg_10si.csv",
-    "2d": "../data/global/country_avg_2d.csv",
-    "swvl1": "../data/global/country_avg_swvl1.csv",
-    "sde": "../data/global/country_avg_sde.csv",
-    "sf": "../data/global/country_avg_sf.csv",
-    "skt": "../data/global/country_avg_skt.csv",
-    "ssr": "../data/global/country_avg_ssr.csv",
-    "slhf": "../data/global/country_avg_slhf.csv",
-    "sshf": "../data/global/country_avg_sshf.csv"
+    "2t": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_2t.csv",
+    "tp": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_tp.csv",
+    "10si": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_10si.csv",
+    "2d": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_2d.csv",
+    "swvl1": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_swvl1.csv",
+    "sde": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sde.csv",
+    "sf": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sf.csv",
+    "skt": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_skt.csv",
+    "ssr": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_ssr.csv",
+    "slhf": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_slhf.csv",
+    "sshf": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sshf.csv"
 };
 
 const customBlue = d3.interpolateRgb("#6baed6", "#08306b");
@@ -219,7 +219,7 @@ Promise.all([
             updateViewsWithData(window.appState.dataCache[appState.selectedCountry]);
         } else {
             // Load from network if not in cache
-            const csvPath = `../data/countries/era5_monthly_${appState.selectedCountry}.csv`;
+            const csvPath = `https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/countries/era5_monthly_${appState.selectedCountry}.csv`;
             d3.csv(csvPath).then(data => {
                 window.appState.dataCache[appState.selectedCountry] = data;
                 updateViewsWithData(data);
