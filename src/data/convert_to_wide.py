@@ -50,10 +50,14 @@ def convert_file(file_path, output_dir):
     wide_df['lat'] = wide_df['lat'].round(4)
     wide_df['lon'] = wide_df['lon'].round(4)
 
-    # Round data values to 2 decimals to save space
-    # (Exclude year/month/lat/lon from this rounding if strict, but simple iteration works)
+    # Round data values to save space
     data_cols = [c for c in wide_df.columns if c not in ['year', 'month', 'lat', 'lon']]
-    wide_df[data_cols] = wide_df[data_cols].round(2)
+    data_cols_fine = ['tp', 'sde', 'sf']
+    data_cols_normal = ['swvl1', '10si']
+    data_cols_coarse = [c for c in data_cols if c not in data_cols_fine and c not in data_cols_normal]
+    wide_df[data_cols_fine] = wide_df[data_cols_fine].round(5)
+    wide_df[data_cols_normal] = wide_df[data_cols_normal].round(3)
+    wide_df[data_cols_coarse] = wide_df[data_cols_coarse].round(2)
 
     # 5. Save
     output_path = os.path.join(output_dir, filename)

@@ -5,7 +5,7 @@ class HistoryChart {
 
     constructor(containerId) {
         this.container = d3.select(containerId);
-        this.margin = { top: 10, right: 20, bottom: 40, left: 70 };
+        this.margin = {top: 10, right: 20, bottom: 40, left: 70};
 
         // 1. Setup
         const height = this.container.node().clientHeight || 200;
@@ -72,9 +72,8 @@ class HistoryChart {
         // 4. Draw
         this.xAxisGroup.attr("transform", `translate(0,${this.height})`)
             .call(d3.axisBottom(this.x).ticks(5));
-
         this.yAxisGroup.transition().duration(500)
-            .call(d3.axisLeft(this.y));
+            .call(d3.axisLeft(this.y).tickFormat(d3.format(".3~g")));
 
         const lineGenerator = d3.line()
             .curve(d3.curveMonotoneX)
@@ -105,14 +104,14 @@ class HistoryChart {
             .attr("fill", "steelblue")
             .attr("opacity", 0)
 
-            .on("mouseover", function() {
+            .on("mouseover", function () {
                 d3.select(this)
                     .attr("opacity", 1)
                     .attr("fill", "orange")
                     .attr("r", 7);
                 this.style.cursor = "pointer";
             })
-            .on("mouseout", function() {
+            .on("mouseout", function () {
                 d3.select(this)
                     .attr("opacity", 0)
                     .attr("r", 5);

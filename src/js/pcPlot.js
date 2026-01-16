@@ -79,7 +79,11 @@ class ParallelCoordinates {
             .attr("transform", d => `translate(${this.xScale(d)})`);
 
         axes.each((d, i, nodes) => {
-            d3.select(nodes[i]).call(d3.axisLeft(this.yScales[d]).ticks(5));
+            d3.select(nodes[i])
+                .call(d3.axisLeft(this.yScales[d])
+                    .ticks(5)
+                    .tickFormat(d3.format(".3~g"))
+                );
         });
 
         axes.selectAll("text")

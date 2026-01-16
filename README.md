@@ -26,7 +26,9 @@ cd ..
 ## Preprocessing
 
 ```shell
-python src/data/preprocess.py data/data.grib
+python src/data/process_global_averages.py data/data.grib
+python src/data/process_country_details.py data/data.grib
+python src/data/convert_to_wide.py data/processed/countries/ data/processed/countries_wide/
 ```
 
 ## View

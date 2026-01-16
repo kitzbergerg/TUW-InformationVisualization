@@ -94,7 +94,7 @@ class WorldMap {
                     .translate(-(x0 + x1) / 2, -(y0 + y1) / 2)
             );
 
-            window.dispatchEvent(new CustomEvent("countrySelected", { detail: id }));
+            window.dispatchEvent(new CustomEvent("countrySelected", {detail: id}));
         }
     }
 
@@ -167,8 +167,9 @@ class WorldMap {
             .attr("fill", d => localScale(+d[variable]))
             .on("mouseover", (event, d) => {
                 this.tooltip.transition().duration(100).style("opacity", .9);
+                const fmt = d3.format(".3~g");
                 this.tooltip.html(`
-                    <strong>${variable}:</strong> ${(+d[variable]).toFixed(2)} ${conf.unit}<br/>
+                    <strong>${variable}:</strong> ${fmt(+d[variable])} ${conf.unit}<br/>
                     <strong>Loc:</strong> ${d.lat}, ${d.lon}
                 `).style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
             })
@@ -213,9 +214,10 @@ class WorldMap {
             linearGradient.append("stop").attr("offset", "100%").attr("stop-color", scale(1));
         }
 
+        const fmt = d3.format(".3~g");
         this.legendG.append("rect").attr("width", legendWidth).attr("height", legendHeight).style("fill", `url(#${gradientId})`).attr("stroke", "#ccc");
-        this.legendG.append("text").attr("x", 0).attr("y", legendHeight + 15).text(`${min.toFixed(1)} ${unit}`).style("font-size", "11px").style("fill", "#333");
-        this.legendG.append("text").attr("x", legendWidth).attr("y", legendHeight + 15).attr("text-anchor", "end").text(`${max.toFixed(1)} ${unit}`).style("font-size", "11px").style("fill", "#333");
+        this.legendG.append("text").attr("x", 0).attr("y", legendHeight + 15).text(`${fmt(min)} ${unit}`).style("font-size", "11px").style("fill", "#333");
+        this.legendG.append("text").attr("x", legendWidth).attr("y", legendHeight + 15).attr("text-anchor", "end").text(`${fmt(max)} ${unit}`).style("font-size", "11px").style("fill", "#333");
         this.legendG.append("text").attr("x", 0).attr("y", -6).text(`Range (${unit})`).style("font-size", "11px").style("font-weight", "bold").style("fill", "#555");
     }
 
@@ -226,7 +228,8 @@ class WorldMap {
         const code = this.getCountryId(d);
         const record = this.avgData.find(r => r.country_code === code);
         const val = record ? +record.value : null;
-        const displayVal = val !== null ? val.toFixed(2) : 'N/A';
+        const fmt = d3.format(".3~g");
+        const displayVal = val !== null ? fmt(val) : 'N/A';
         const unit = (window.climateVariables[window.appState.activeVariable] || {}).unit || "";
 
         this.tooltip.transition().duration(200).style("opacity", .9);
@@ -260,7 +263,7 @@ class WorldMap {
                 .translate(-(x0 + x1) / 2, -(y0 + y1) / 2)
         );
 
-        window.dispatchEvent(new CustomEvent("countrySelected", { detail: code }));
+        window.dispatchEvent(new CustomEvent("countrySelected", {detail: code}));
     }
 
     /**
