@@ -5,10 +5,10 @@ class HistoryChart {
 
     constructor(containerId) {
         this.container = d3.select(containerId);
-        this.margin = { top: 20, right: 30, bottom: 40, left: 60 };
+        this.margin = { top: 10, right: 20, bottom: 40, left: 70 };
 
         // 1. Setup
-        const height = this.container.node().clientHeight || 220;
+        const height = this.container.node().clientHeight || 200;
 
         this.svg = this.container.append("svg")
             .attr("width", "100%")

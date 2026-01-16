@@ -5,7 +5,7 @@ class ParallelCoordinates {
 
     constructor(containerId) {
         this.container = d3.select(containerId);
-        this.margin = { top: 40, right: 10, bottom: 10, left: 0 };
+        this.margin = {top: 30, right: 40, bottom: 0, left: 20};
 
         // 1. Setup
         const height = this.container.node().clientHeight || 400;
@@ -22,7 +22,7 @@ class ParallelCoordinates {
         this.axisGroup = this.g.append("g").attr("class", "axes");
 
         this.yScales = {};
-        this.xScale = d3.scalePoint().padding(0.5);
+        this.xScale = d3.scalePoint().padding(0.2);
         this.metaKeys = ["year", "month", "lat", "lon", "country_code"];
     }
 
@@ -32,20 +32,25 @@ class ParallelCoordinates {
     update(data) {
         if (!data || data.length === 0) return;
 
+        // limit data so it can be displayed
+        const limit = 100;
+        const step = Math.ceil(data.length / limit);
+        const displayData = data.filter((d, i) => i % step === 0);
+
         // 1. Dimensions
         const containerRect = this.container.node().getBoundingClientRect();
         this.width = containerRect.width - this.margin.left - this.margin.right;
         const height = containerRect.height - this.margin.top - this.margin.bottom;
         this.svg.attr("height", containerRect.height);
 
-        const keys = Object.keys(data[0]);
+        const keys = Object.keys(displayData[0]);
         this.dimensions = keys.filter(d => !this.metaKeys.includes(d));
 
         // 2. Scales
         this.xScale.domain(this.dimensions).range([0, this.width]);
         this.dimensions.forEach(dim => {
             this.yScales[dim] = d3.scaleLinear()
-                .domain(d3.extent(data, d => +d[dim]))
+                .domain(d3.extent(displayData, d => +d[dim]))
                 .range([height, 0]);
         });
 
@@ -56,7 +61,7 @@ class ParallelCoordinates {
         ));
 
         this.pathGroup.selectAll("path")
-            .data(data)
+            .data(displayData)
             .join("path")
             .attr("d", path)
             .style("fill", "none")
@@ -74,7 +79,7 @@ class ParallelCoordinates {
             .attr("transform", d => `translate(${this.xScale(d)})`);
 
         axes.each((d, i, nodes) => {
-             d3.select(nodes[i]).call(d3.axisLeft(this.yScales[d]).ticks(5));
+            d3.select(nodes[i]).call(d3.axisLeft(this.yScales[d]).ticks(5));
         });
 
         axes.selectAll("text")
@@ -84,7 +89,7 @@ class ParallelCoordinates {
 
         axes.append("text")
             .style("text-anchor", "middle")
-            .attr("y", (d, i) => i % 2 === 0 ? -12 : -24)
+            .attr("y", -10)
             .text(d => {
                 const conf = (window.climateVariables && window.climateVariables[d])
                     ? window.climateVariables[d]
@@ -103,11 +108,11 @@ class ParallelCoordinates {
 
         axes.append("g")
             .attr("class", "brush")
-            .each(function(d) {
+            .each(function (d) {
                 d3.select(this).call(
                     d3.brushY()
                         .extent([[-10, 0], [10, height]])
-                        .on("brush end", function(event) {
+                        .on("brush end", function (event) {
                             const selection = event.selection;
 
                             if (!selection) {
