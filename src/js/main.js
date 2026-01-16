@@ -11,34 +11,34 @@ window.appState = {
 };
 
 const variableFiles = {
-    "2t": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_2t.csv",
-    "tp": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_tp.csv",
-    "10si": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_10si.csv",
-    "2d": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_2d.csv",
-    "swvl1": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_swvl1.csv",
-    "sde": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sde.csv",
-    "sf": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sf.csv",
-    "skt": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_skt.csv",
-    "ssr": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_ssr.csv",
-    "slhf": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_slhf.csv",
-    "sshf": "https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/global/country_avg_sshf.csv"
+    "2t": "../data/global/country_avg_2t.csv",
+    "tp": "../data/global/country_avg_tp.csv",
+    "10si": "../data/global/country_avg_10si.csv",
+    "2d": "../data/global/country_avg_2d.csv",
+    "swvl1": "../data/global/country_avg_swvl1.csv",
+    "sde": "../data/global/country_avg_sde.csv",
+    "sf": "../data/global/country_avg_sf.csv",
+    "skt": "../data/global/country_avg_skt.csv",
+    "ssr": "../data/global/country_avg_ssr.csv",
+    "slhf": "../data/global/country_avg_slhf.csv",
+    "sshf": "../data/global/country_avg_sshf.csv"
 };
 
 const customBlue = d3.interpolateRgb("#6baed6", "#08306b");
 const customTeal = d3.interpolateRgb("#4db6ac", "#004d40");
 
 window.climateVariables = {
-    "2t":   { label: "Temperature (2m)",      unit: "K",      color: d3.interpolateRdYlBu, reverse: true },
-    "2d":   { label: "Dewpoint Temp",         unit: "K",      color: d3.interpolateRdYlBu, reverse: true },
-    "skt":  { label: "Skin Temp",             unit: "K",      color: d3.interpolateRdYlBu, reverse: true },
-    "tp":   { label: "Total Precipitation",   unit: "m",      color: customBlue,  reverse: false },
-    "sde":  { label: "Snow Depth",            unit: "m",      color: customBlue,   reverse: false },
-    "sf":   { label: "Snowfall",              unit: "m",      color: customBlue,   reverse: false },
-    "swvl1":{ label: "Soil Water",            unit: "m³/m³",  color: customTeal,   reverse: false },
-    "10si": { label: "Wind Speed",            unit: "m/s",    color: d3.interpolateViridis,reverse: false },
-    "ssr":  { label: "Solar Radiation",       unit: "J/m²",   color: d3.interpolateInferno,reverse: false },
-    "slhf": { label: "Latent Heat Flux",      unit: "J/m²",   color: d3.interpolateMagma,  reverse: false },
-    "sshf": { label: "Sensible Heat Flux",    unit: "J/m²",   color: d3.interpolateMagma,  reverse: false }
+    "2t": {label: "Temperature (2m)", unit: "K", color: d3.interpolateRdYlBu, reverse: true},
+    "2d": {label: "Dewpoint Temp", unit: "K", color: d3.interpolateRdYlBu, reverse: true},
+    "skt": {label: "Skin Temp", unit: "K", color: d3.interpolateRdYlBu, reverse: true},
+    "tp": {label: "Total Precipitation", unit: "m", color: customBlue, reverse: false},
+    "sde": {label: "Snow Depth", unit: "m", color: customBlue, reverse: false},
+    "sf": {label: "Snowfall", unit: "m", color: customBlue, reverse: false},
+    "swvl1": {label: "Soil Water", unit: "m³/m³", color: customTeal, reverse: false},
+    "10si": {label: "Wind Speed", unit: "m/s", color: d3.interpolateViridis, reverse: false},
+    "ssr": {label: "Solar Radiation", unit: "J/m²", color: d3.interpolateInferno, reverse: false},
+    "slhf": {label: "Latent Heat Flux", unit: "J/m²", color: d3.interpolateMagma, reverse: false},
+    "sshf": {label: "Sensible Heat Flux", unit: "J/m²", color: d3.interpolateMagma, reverse: false}
 };
 
 window.climateVars = {};
@@ -96,11 +96,11 @@ function createTimeFilters(data) {
     yearSelect.property("value", appState.selectedYear);
     monthSelect.property("value", appState.selectedMonth);
 
-    yearSelect.on("change", function() {
+    yearSelect.on("change", function () {
         appState.selectedYear = +this.value;
         filterAllViewsByTime();
     });
-    monthSelect.on("change", function() {
+    monthSelect.on("change", function () {
         appState.selectedMonth = +this.value;
         filterAllViewsByTime();
     });
@@ -119,13 +119,13 @@ function createCountryFilter(geoData) {
         id: d.properties.ADM0_A3 || d.properties.ISO_A3 || d.properties.iso_a3 || d.id,
         name: d.properties.NAME || d.properties.name || d.properties.admin
     })).filter(c => c.id && c.name)
-      .sort((a, b) => a.name.localeCompare(b.name));
+        .sort((a, b) => a.name.localeCompare(b.name));
 
     countries.forEach(c => {
         select.append("option").attr("value", c.id).text(c.name);
     });
 
-    select.on("change", function() {
+    select.on("change", function () {
         const val = this.value;
         if (val === "GLOBAL") {
             if (map) map.reset();
@@ -206,6 +206,7 @@ Promise.all([
     d3.select("#history-panel").style("opacity", "0").style("pointer-events", "none");
 
     // 1. Country Selected
+    window.appState.dataCache = {};
     window.addEventListener('countrySelected', (e) => {
         appState.selectedCountry = e.detail;
 
@@ -213,22 +214,33 @@ Promise.all([
         d3.select("#main-grid").classed("details-active", true);
         d3.select("#history-panel").style("opacity", "1").style("pointer-events", "all");
 
-        const csvPath = `https://media.githubusercontent.com/media/kitzbergerg/TUW-InformationVisualization/main/src/data/countries/era5_monthly_${appState.selectedCountry}.csv`;
-
-        d3.csv(csvPath).then(data => {
-            appState.fullCountryData = data;
-
-            if (historyChart) historyChart.update(data, appState.activeVariable);
-            filterAllViewsByTime();
-
-            setTimeout(() => {
-                 const currentData = data.filter(d =>
-                    +d.year === appState.selectedYear && +d.month === appState.selectedMonth
-                 );
-                 if (pcPlot) pcPlot.update(currentData);
-            }, 550);
-        }).catch(err => console.error("Error loading country details", err));
+        // Use cache for faster subsequent reads
+        if (window.appState.dataCache[appState.selectedCountry]) {
+            console.log("Loading from cache...");
+            updateViewsWithData(window.appState.dataCache[appState.selectedCountry]);
+        } else {
+            // Load from network if not in cache
+            const csvPath = `../data/countries/era5_monthly_${appState.selectedCountry}.csv`;
+            d3.csv(csvPath).then(data => {
+                window.appState.dataCache[appState.selectedCountry] = data;
+                updateViewsWithData(data);
+            });
+        }
     });
+
+    function updateViewsWithData(data) {
+        appState.fullCountryData = data;
+        if (historyChart) historyChart.update(data, appState.activeVariable);
+        filterAllViewsByTime();
+
+        // PC Plot update with slight delay for UI responsiveness
+        setTimeout(() => {
+            const currentData = data.filter(d =>
+                +d.year === appState.selectedYear && +d.month === appState.selectedMonth
+            );
+            if (pcPlot) pcPlot.update(currentData);
+        }, 100);
+    }
 
     // 2. Map Reset
     window.addEventListener('mapReset', () => {
@@ -241,14 +253,14 @@ Promise.all([
         d3.select("#history-panel").style("opacity", "0").style("pointer-events", "none");
 
         if (historyChart) {
-             d3.select("#line-container").selectAll("*").remove();
-             historyChart = new HistoryChart("#line-container");
+            d3.select("#line-container").selectAll("*").remove();
+            historyChart = new HistoryChart("#line-container");
         }
     });
 
     // 3. Date Changed
     window.addEventListener('dateChanged', (e) => {
-        const { year, month } = e.detail;
+        const {year, month} = e.detail;
         appState.selectedYear = +year;
         appState.selectedMonth = +month;
 
