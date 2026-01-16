@@ -1,50 +1,60 @@
 /**
- * A class to render a temporal line chart visualizing the trend of a selected climate variable.
- * It aggregates spatial grid data into monthly averages and handles user interactions.
+ * class HistoryChart
  */
 class HistoryChart {
-    /**
-     * Initializes the History Chart instance.
-     * Sets up the SVG structure, margins, axes groups, and initial scales.
-     * @param {String} containerId - The CSS selector (e.g., "#line-container") of the HTML element to render the chart in.
-     */
+
     constructor(containerId) {
         this.container = d3.select(containerId);
         this.margin = { top: 20, right: 30, bottom: 40, left: 60 };
+
+        // 1. Setup
+        const height = this.container.node().clientHeight || 220;
+
         this.svg = this.container.append("svg")
             .attr("width", "100%")
-            .attr("height", 250) // Fixed height
+            .attr("height", height)
             .style("overflow", "visible");
+
         this.g = this.svg.append("g")
             .attr("transform", `translate(${this.margin.left},${this.margin.top})`);
+
+        this.width = this.container.node().clientWidth - this.margin.left - this.margin.right;
+        this.height = height - this.margin.top - this.margin.bottom;
+
+        // 2. Elements
         this.xAxisGroup = this.g.append("g");
         this.yAxisGroup = this.g.append("g");
+
         this.path = this.g.append("path")
             .attr("fill", "none")
             .attr("stroke", "steelblue")
             .attr("stroke-width", 2);
-        this.x = d3.scaleTime();
-        this.y = d3.scaleLinear();
+
+        this.yLabel = this.g.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", -45)
+            .attr("x", -(this.height / 2))
+            .style("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("fill", "#666");
+
+        this.x = d3.scaleTime().range([0, this.width]);
+        this.y = d3.scaleLinear().range([this.height, 0]);
     }
 
     /**
-     * Updates the chart with new data and a selected variable.
-     * Aggregates spatial data (lat/lon grid points) into a single monthly average,
-     * updates scales/axes, and manages interactive elements (hover/click).
-     * @param {Array} data - The raw data array from the country-specific CSV (era5_monthly_XXX.csv).
-     * @param {String} [variable="2t"] - The specific climate variable key to visualize (e.g., '2t', 'tp').
+     * Updates the chart.
      */
     update(data, variable = "2t") {
         if (!data || data.length === 0) return;
 
-        // 1. Calculate Width Dynamically
-        const containerRect = this.container.node().getBoundingClientRect();
-        const width = containerRect.width - this.margin.left - this.margin.right;
-        const height = 250 - this.margin.top - this.margin.bottom;
-        const safeWidth = width > 0 ? width : 600;
+        // 1. Dimensions
+        this.width = this.container.node().clientWidth - this.margin.left - this.margin.right;
+        this.x.range([0, this.width]);
 
-        // 2. Pre-process Data (Average Lat/Lon per Month)
+        // 2. Process Data
         const nestedData = d3.groups(data, d => `${d.year}-${d.month}`);
+
         const processedData = nestedData.map(([key, values]) => {
             const [year, month] = key.split("-");
             return {
@@ -53,29 +63,39 @@ class HistoryChart {
             };
         }).sort((a, b) => a.date - b.date);
 
-        // 3. Update Scales
-        this.x.domain(d3.extent(processedData, d => d.date)).range([0, safeWidth]);
-        const [min, max] = d3.extent(processedData, d => d.value);
-        this.y.domain([min * 0.99, max * 1.01]).range([height, 0]);
+        // 3. Domains
+        this.x.domain(d3.extent(processedData, d => d.date));
 
-        // 4. Draw Axes
-        this.xAxisGroup.attr("transform", `translate(0,${height})`)
+        const [min, max] = d3.extent(processedData, d => d.value);
+        this.y.domain([min * 0.99, max * 1.01]);
+
+        // 4. Draw
+        this.xAxisGroup.attr("transform", `translate(0,${this.height})`)
             .call(d3.axisBottom(this.x).ticks(5));
+
         this.yAxisGroup.transition().duration(500)
             .call(d3.axisLeft(this.y));
 
-        // 5. Draw Line
         const lineGenerator = d3.line()
+            .curve(d3.curveMonotoneX)
             .x(d => this.x(d.date))
             .y(d => this.y(d.value));
+
         this.path.datum(processedData)
             .transition().duration(500)
             .attr("d", lineGenerator);
 
-        // 6. Interaction Points (Dots)
-        const dots = this.g.selectAll(".dot")
-            .data(processedData);
+        // 5. Labels
+        const conf = window.climateVariables[variable] || {};
+        const labelText = conf.label || variable;
+        const unitText = conf.unit || "";
+        this.yLabel.text(`${labelText} (${unitText})`);
+
+        // 6. Interaction
+        const dots = this.g.selectAll(".dot").data(processedData);
+
         dots.exit().remove();
+
         dots.enter().append("circle")
             .attr("class", "dot")
             .merge(dots)
@@ -83,20 +103,32 @@ class HistoryChart {
             .attr("cy", d => this.y(d.value))
             .attr("r", 5)
             .attr("fill", "steelblue")
-            .attr("opacity", 0) // Invisible until hover
-            .on("mouseover", function(event, d) {
-                d3.select(this).attr("opacity", 1).attr("fill", "orange");
+            .attr("opacity", 0)
+
+            .on("mouseover", function() {
+                d3.select(this)
+                    .attr("opacity", 1)
+                    .attr("fill", "orange")
+                    .attr("r", 7);
+                this.style.cursor = "pointer";
             })
             .on("mouseout", function() {
-                d3.select(this).attr("opacity", 0);
+                d3.select(this)
+                    .attr("opacity", 0)
+                    .attr("r", 5);
             })
             .on("click", (event, d) => {
-                const dateEvent = new CustomEvent("dateChanged", {
-                    detail: { year: d.date.getFullYear(), month: d.date.getMonth() + 1 }
-                });
-                window.dispatchEvent(dateEvent);
-                this.g.selectAll(".dot").attr("opacity", 0);
-                d3.select(event.currentTarget).attr("opacity", 1).attr("fill", "red");
+                d3.selectAll(".dot").attr("opacity", 0);
+                d3.select(event.currentTarget)
+                    .attr("opacity", 1)
+                    .attr("fill", "#e63946");
+
+                window.dispatchEvent(new CustomEvent("dateChanged", {
+                    detail: {
+                        year: d.date.getFullYear(),
+                        month: d.date.getMonth() + 1
+                    }
+                }));
             });
     }
 }

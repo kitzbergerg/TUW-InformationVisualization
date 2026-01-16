@@ -1,202 +1,276 @@
 /**
- * A class to render an interactive Choropleth World Map using D3.js.
- * It supports global data visualization, semantic zooming into specific countries,
- * and rendering detailed grid-based climate gradients upon interaction.
+ * class WorldMap
  */
 class WorldMap {
 
-    /**
-     * Initializes the World Map instance.
-     * Sets up dimensions, stores initial data, and prepares the D3 container.
-     * @param {String} containerId - The CSS selector (e.g., "#map-container") for the SVG parent.
-     * @param {Object} geoData - The GeoJSON or TopoJSON object containing world country features.
-     * @param {Array} initialAvgData - The array of global average data (country_avg_XXX.csv) for the initial coloring.
-     */
     constructor(containerId, geoData, initialAvgData) {
         this.container = d3.select(containerId);
         this.geoData = geoData;
         this.avgData = initialAvgData;
         this.width = this.container.node().getBoundingClientRect().width;
-        this.height = 600;
+        this.height = this.container.node().clientHeight || 600;
         this.selectedCountry = null;
         this.init();
     }
 
-    /**
-     * Sets up the SVG, Map Projection, Color Scales, and Zoom behaviors.
-     * Called automatically by the constructor.
-     */
     init() {
         this.svg = this.container.append("svg")
             .attr("width", "100%")
-            .attr("height", this.height)
-            .attr("viewBox", `0 0 ${this.width} ${this.height}`);
-        this.g = this.svg.append("g");
+            .attr("height", "100%")
+            .attr("viewBox", `0 0 ${this.width} ${this.height}`)
+            .attr("preserveAspectRatio", "xMidYMid meet");
 
-        // 1. Define Projection
+        // 1. Background Click
+        this.svg.on("click", (event) => {
+            if (event.target.tagName === 'svg' || event.target.tagName === 'g') {
+                this.reset();
+            }
+        });
+
+        // 2. Layers
+        this.g = this.svg.append("g").attr("class", "map-layer");
+        this.gridGroup = this.svg.append("g").attr("class", "grid-layer");
+        this.borderGroup = this.svg.append("g").attr("class", "border-layer");
+
+        this.legendG = this.svg.append("g")
+            .attr("class", "map-legend")
+            .attr("transform", `translate(20, ${this.height - 50})`);
+
+        this.defs = this.svg.append("defs");
+        this.clipPath = this.defs.append("clipPath")
+            .attr("id", "selected-country-clip")
+            .append("path");
+
+        // 3. Projection
         this.projection = d3.geoNaturalEarth1()
-            .scale(this.width / 1.5 / Math.PI)
+            .scale(this.width / 1.6 / Math.PI)
             .translate([this.width / 2, this.height / 2]);
         this.path = d3.geoPath().projection(this.projection);
 
-        // 2. Setup Color Scale
-        this.colorScale = d3.scaleSequential(d3.interpolateRdYlBu)
-            .domain([310, 240]); //Kelvin/Temp
+        this.colorScale = d3.scaleSequential();
 
-        // 3. Setup Tooltip
         this.tooltip = d3.select("body").append("div")
             .attr("class", "tooltip")
             .style("opacity", 0);
 
-        // 4. Zoom
         this.zoom = d3.zoom()
             .scaleExtent([1, 8])
-            .on("zoom", (event) => this.g.attr("transform", event.transform));
+            .on("zoom", (event) => {
+                const t = event.transform;
+                this.g.attr("transform", t);
+                this.gridGroup.attr("transform", t);
+                this.borderGroup.attr("transform", t);
+                this.g.selectAll("path").attr("stroke-width", 0.5 / t.k);
+                this.borderGroup.selectAll("path").attr("stroke-width", 1.5 / t.k);
+            });
+
+        this.svg.call(this.zoom);
         this.renderWorld();
     }
 
     /**
-     * Displays a tooltip with the country name and its value.
-     * @param {Object} event - The DOM MouseEvent.
-     * @param {Object} d - The data bound to the hovered element (GeoJSON feature).
+     * Helper to get Country ID.
      */
-    showTooltip(event, d) {
-        const record = this.avgData.find(r => r.country_code === d.id);
-        const val = record ? +record.value : null;
-        const displayVal = val !== null ? val.toFixed(2) : 'N/A';
-        this.tooltip.transition().duration(200).style("opacity", .9);
-        this.tooltip.html(`<strong>${d.properties.name}</strong><br/>Avg: ${displayVal}`)
-            .style("left", (event.pageX + 10) + "px")
-            .style("top", (event.pageY - 28) + "px");
+    getCountryId(d) {
+        return d.properties.ADM0_A3 || d.properties.ISO_A3 || d.properties.iso_a3 || d.id;
     }
 
     /**
-     * Hides the tooltip when the mouse leaves a country.
+     * External selection method.
      */
+    selectCountry(id) {
+        const feature = this.geoData.features.find(d => this.getCountryId(d) === id);
+
+        if (feature) {
+            if (this.selectedCountry === feature) return;
+
+            this.selectedCountry = feature;
+            const [[x0, y0], [x1, y1]] = this.path.bounds(feature);
+
+            this.svg.transition().duration(750).call(
+                this.zoom.transform,
+                d3.zoomIdentity.translate(this.width / 2, this.height / 2)
+                    .scale(Math.min(8, 0.9 / Math.max((x1 - x0) / this.width, (y1 - y0) / this.height)))
+                    .translate(-(x0 + x1) / 2, -(y0 + y1) / 2)
+            );
+
+            window.dispatchEvent(new CustomEvent("countrySelected", { detail: id }));
+        }
+    }
+
+    /**
+     * Renders global map.
+     */
+    renderWorld() {
+        const activeKey = window.appState.activeVariable;
+        const conf = window.climateVariables[activeKey];
+        const values = this.avgData.map(d => +d.value);
+        let minVal = d3.min(values) || 0;
+        let maxVal = d3.max(values) || 1;
+
+        this.colorScale.interpolator(conf.color);
+        if (conf.reverse) this.colorScale.domain([maxVal, minVal]);
+        else this.colorScale.domain([minVal, maxVal]);
+
+        this.gridGroup.selectAll("*").remove();
+        this.borderGroup.selectAll("*").remove();
+
+        this.g.selectAll(".country")
+            .data(this.geoData.features)
+            .join("path")
+            .attr("class", "country")
+            .attr("d", this.path)
+            .attr("stroke", "#fff")
+            .attr("stroke-width", 0.5)
+            .on("mouseover", (event, d) => this.showTooltip(event, d))
+            .on("mouseout", () => this.hideTooltip())
+            .on("click", (event, d) => this.clicked(event, d))
+            .transition().duration(750)
+            .attr("fill", d => {
+                const code = this.getCountryId(d);
+                const record = this.avgData.find(r => r.country_code === code);
+                return record ? this.colorScale(+record.value) : "#e0e0e0";
+            });
+
+        this.drawLegend(minVal, maxVal, conf.unit, conf.color, conf.reverse);
+    }
+
+    /**
+     * Renders detailed grid.
+     */
+    renderDetailedGrid(detailData, variable = '2t') {
+        this.gridGroup.selectAll("*").remove();
+        this.borderGroup.selectAll("*").remove();
+
+        if (!detailData || detailData.length === 0 || !this.selectedCountry) return;
+
+        const conf = window.climateVariables[variable];
+        const extent = d3.extent(detailData, d => +d[variable]);
+        const localScale = d3.scaleSequential(conf.color);
+        if (conf.reverse) localScale.domain([extent[1], extent[0]]);
+        else localScale.domain([extent[0], extent[1]]);
+
+        this.clipPath.attr("d", this.path(this.selectedCountry));
+
+        const cellSize = 5;
+        const cellGroup = this.gridGroup.append("g").attr("clip-path", "url(#selected-country-clip)");
+
+        cellGroup.selectAll(".grid-cell")
+            .data(detailData)
+            .enter()
+            .append("rect")
+            .attr("class", "grid-cell")
+            .attr("x", d => this.projection([+d.lon, +d.lat])[0] - cellSize / 2)
+            .attr("y", d => this.projection([+d.lon, +d.lat])[1] - cellSize / 2)
+            .attr("width", cellSize)
+            .attr("height", cellSize)
+            .attr("fill", d => localScale(+d[variable]))
+            .on("mouseover", (event, d) => {
+                this.tooltip.transition().duration(100).style("opacity", .9);
+                this.tooltip.html(`
+                    <strong>${variable}:</strong> ${(+d[variable]).toFixed(2)} ${conf.unit}<br/>
+                    <strong>Loc:</strong> ${d.lat}, ${d.lon}
+                `).style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+            })
+            .on("mouseout", () => {
+                this.tooltip.transition().duration(500).style("opacity", 0);
+            })
+            .attr("opacity", 0)
+            .transition().duration(1000)
+            .attr("opacity", 1);
+
+        this.borderGroup.append("path")
+            .datum(this.selectedCountry)
+            .attr("d", this.path)
+            .attr("fill", "none")
+            .attr("stroke", "#333")
+            .attr("stroke-width", 1.5)
+            .style("pointer-events", "none");
+
+        this.drawLegend(extent[0], extent[1], conf.unit, conf.color, conf.reverse);
+    }
+
+    /**
+     * Draws Legend.
+     */
+    drawLegend(min, max, unit, interpolator, isReversed) {
+        this.legendG.html("");
+        const legendWidth = 200;
+        const legendHeight = 12;
+
+        const defs = this.legendG.append("defs");
+        const gradientId = "legend-gradient";
+        const linearGradient = defs.append("linearGradient")
+            .attr("id", gradientId).attr("x1", "0%").attr("y1", "0%").attr("x2", "100%").attr("y2", "0%");
+
+        const scale = d3.scaleSequential(interpolator);
+
+        if (isReversed) {
+            linearGradient.append("stop").attr("offset", "0%").attr("stop-color", scale(1));
+            linearGradient.append("stop").attr("offset", "100%").attr("stop-color", scale(0));
+        } else {
+            linearGradient.append("stop").attr("offset", "0%").attr("stop-color", scale(0));
+            linearGradient.append("stop").attr("offset", "100%").attr("stop-color", scale(1));
+        }
+
+        this.legendG.append("rect").attr("width", legendWidth).attr("height", legendHeight).style("fill", `url(#${gradientId})`).attr("stroke", "#ccc");
+        this.legendG.append("text").attr("x", 0).attr("y", legendHeight + 15).text(`${min.toFixed(1)} ${unit}`).style("font-size", "11px").style("fill", "#333");
+        this.legendG.append("text").attr("x", legendWidth).attr("y", legendHeight + 15).attr("text-anchor", "end").text(`${max.toFixed(1)} ${unit}`).style("font-size", "11px").style("fill", "#333");
+        this.legendG.append("text").attr("x", 0).attr("y", -6).text(`Range (${unit})`).style("font-size", "11px").style("font-weight", "bold").style("fill", "#555");
+    }
+
+    /**
+     * Tooltip.
+     */
+    showTooltip(event, d) {
+        const code = this.getCountryId(d);
+        const record = this.avgData.find(r => r.country_code === code);
+        const val = record ? +record.value : null;
+        const displayVal = val !== null ? val.toFixed(2) : 'N/A';
+        const unit = (window.climateVariables[window.appState.activeVariable] || {}).unit || "";
+
+        this.tooltip.transition().duration(200).style("opacity", .9);
+        this.tooltip.html(`<strong>${d.properties.name || d.properties.NAME}</strong><br/>Val: ${displayVal} ${unit}`)
+            .style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
+    }
+
     hideTooltip() {
         this.tooltip.transition().duration(500).style("opacity", 0);
     }
 
     /**
-     * Renders or updates the Choropleth map.
-     * Recalculates the color domain based on the current `avgData` and uses the
-     * D3 join pattern to update fill colors dynamically.
-     */
-    renderWorld() {
-        // 1. Update scale domain
-        const values = this.avgData.map(d => +d.value);
-        const minVal = d3.min(values);
-        const maxVal = d3.max(values);
-        // Update the colors stretch
-        this.colorScale.domain([minVal, maxVal]);
-        console.log(`Map Color Domain Updated: ${minVal} to ${maxVal}`);
-
-        // 2. Bind data
-        const countries = this.g.selectAll(".country")
-            .data(this.geoData.features);
-
-        // 3. Draw/ update parth
-        countries.join(
-            // ENTER: Create new paths for countries (runs only once usually)
-            enter => enter.append("path")
-                .attr("class", "country")
-                .attr("d", this.path)
-                .attr("stroke", "#fff")
-                .attr("stroke-width", 0.5)
-                .on("mouseover", (event, d) => this.showTooltip(event, d))
-                .on("mouseout", () => this.hideTooltip())
-                .on("click", (event, d) => this.clicked(event, d)),
-            update => update
-        )
-        .transition().duration(750) //Animation
-        .attr("fill", d => {
-            const record = this.avgData.find(r => r.country_code === d.id);
-            return record ? this.colorScale(+record.value) : "#ccc";
-        });
-    }
-
-    /**
-     * Handles the click event on a country.
-     * Zooms into the selected country and dispatches a 'countrySelected' event.
-     * If the same country is clicked again, it resets the view.
-     * @param {Object} event - The DOM MouseEvent.
-     * @param {Object} d - The GeoJSON feature of the clicked country.
+     * Click Interaction.
      */
     clicked(event, d) {
+        const code = this.getCountryId(d);
+        const record = this.avgData.find(r => r.country_code === code);
+
+        if (!record) return;
+
         if (this.selectedCountry === d) return this.reset();
+
         this.selectedCountry = d;
         const [[x0, y0], [x1, y1]] = this.path.bounds(d);
         event.stopPropagation();
+
         this.svg.transition().duration(750).call(
             this.zoom.transform,
-            d3.zoomIdentity
-                .translate(this.width / 2, this.height / 2)
+            d3.zoomIdentity.translate(this.width / 2, this.height / 2)
                 .scale(Math.min(8, 0.9 / Math.max((x1 - x0) / this.width, (y1 - y0) / this.height)))
                 .translate(-(x0 + x1) / 2, -(y0 + y1) / 2)
         );
-        // Notify main controller to load detailed CSV (era5_monthly_XXX.csv)
-        const countryEvent = new CustomEvent("countrySelected", { detail: d.id });
-        window.dispatchEvent(countryEvent);
+
+        window.dispatchEvent(new CustomEvent("countrySelected", { detail: code }));
     }
 
     /**
-     * Resets the map zoom to the global view and clears the selection.
+     * Reset Map.
      */
     reset() {
         this.selectedCountry = null;
-        this.svg.transition().duration(750).call(
-            this.zoom.transform,
-            d3.zoomIdentity
-        );
-    }
-
-/**
-     * Renders the local climate gradient (grid points) for the selected country.
-     * @param {Array} detailData - The rows from the specific country CSV (era5_monthly_XXX.csv).
-     * @param {String} [variable='2t'] - The variable key to visualize (e.g., '2t', 'tp').
-     */
-    renderDetailedGrid(detailData, variable = '2t') {
-        // 1. Clear previous detail layers
-        this.g.selectAll(".grid-cell").remove();
-        if (!detailData || detailData.length === 0) return;
-
-        // 2. Setup a local color scale for this specific country's range
-        const extent = d3.extent(detailData, d => +d[variable]);
-        const localColorScale = d3.scaleSequential(d3.interpolateViridis)
-            .domain(extent);
-
-        // 3. Draw the "Gradient" using small rectangles (Grid cells)
-        const cellSize = 4;
-        this.g.selectAll(".grid-cell")
-            .data(detailData)
-            .enter()
-            .append("rect")
-            .attr("class", "grid-cell")
-            // Use projection to convert lat/lon to X/Y
-            .attr("x", d => this.projection([+d.lon, +d.lat])[0] - cellSize/2)
-            .attr("y", d => this.projection([+d.lon, +d.lat])[1] - cellSize/2)
-            .attr("width", cellSize)
-            .attr("height", cellSize)
-            .attr("fill", d => localColorScale(+d[variable]))
-            .attr("opacity", 0) // Start invisible for transition
-            .transition()
-            .duration(1000)
-            .attr("opacity", 0.8);
-
-        // 4. Add a specific tooltip for the grid points
-        this.g.selectAll(".grid-cell")
-            .on("mouseover", (event, d) => {
-                this.tooltip.transition().duration(100).style("opacity", .9);
-                this.tooltip.html(`
-                    <strong>Location:</strong> ${d.lat}, ${d.lon}<br/>
-                    <strong>${variable}:</strong> ${(+d[variable]).toFixed(2)}<br/>
-                    <strong>Date:</strong> ${d.year}-${d.month}
-                `)
-                .style("left", (event.pageX + 10) + "px")
-                .style("top", (event.pageY - 28) + "px");
-            })
-            .on("mouseout", () => {
-                this.tooltip.transition().duration(500).style("opacity", 0);
-            });
+        this.svg.transition().duration(750).call(this.zoom.transform, d3.zoomIdentity);
+        this.gridGroup.selectAll("*").remove();
+        this.borderGroup.selectAll("*").remove();
+        window.dispatchEvent(new CustomEvent("mapReset"));
     }
 }
