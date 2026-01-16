@@ -81,12 +81,12 @@ body {
     column-gap: 10px;
     overflow: hidden; /* Stop grid from expanding beyond viewport */
 
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: 1fr;
     grid-template-rows: 1fr 0px 0px;
     grid-template-areas:
-        "sidebar map"
-        "sidebar pc"
-        "sidebar history";
+        "map"
+        "pc"
+        "history";
 
     transition: grid-template-rows 0.5s ease;
 }
@@ -103,10 +103,6 @@ body {
 }
 
 /* Assign Areas */
-.filter-panel {
-    grid-area: sidebar;
-}
-
 .map-panel {
     grid-area: map;
 }
@@ -183,53 +179,17 @@ h3 {
 }
 
 /* ==========================================================================
-   5. SIDEBAR STYLING
+   5. SELECT STYLING
    ========================================================================== */
-#filters {
-    background-color: var(--bg-sidebar);
-    color: var(--text-light);
-    border: none;
-    overflow-y: auto; /* Allow scroll if sidebar is too tall */
-}
-
-#filters h3 {
-    color: #cbd5e1;
-    border-color: #334155;
-}
-
-.filter-item {
-    padding: 6px 15px;
-    display: flex;
-    align-items: center;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-.filter-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.filter-item input {
-    margin-right: 12px;
-    accent-color: var(--accent);
-    cursor: pointer;
-}
-
-.filter-item label {
-    cursor: pointer;
+.header-controls label {
     font-size: 0.85rem;
+    color: #94a3b8; /* Muted text color */
+    margin-right: 4px;
 }
 
-#time-filters, #location-filters {
-    padding: 0 15px;
-    margin-bottom: 20px;
-}
-
-.filter-group label {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin-bottom: 5px;
+.header-controls select {
+    margin-right: 15px; /* Spacing between groups */
+    padding: 4px 8px; /* Make header inputs slightly more compact */
 }
 
 .dark-input {
@@ -247,19 +207,6 @@ h3 {
     outline: none;
 }
 
-#active-info {
-    margin: auto 15px 15px 15px;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
-    text-align: center;
-    border: 1px solid #334155;
-    flex-shrink: 0;
-}
-
-#current-var-display {
-    color: var(--accent);
-}
 
 /* ==========================================================================
    6. VISUALIZATION SPECIFICS

@@ -9,70 +9,44 @@
     <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
-    <div class="app-container">
+<div class="app-container">
+    <header class="dashboard-header">
+        <div class="header-content">
+            <h1>Climate Visualisation</h1>
+        </div>
+        <div class="header-controls" style="display:flex; gap:15px; align-items:center;">
+            <label for="variable-select">Variable</label><select id="variable-select" class="dark-input"></select>
+            <label for="year-select">Year</label><select id="year-select" class="dark-input"></select>
+            <label for="month-select">Month</label><select id="month-select" class="dark-input"></select>
+            <label for="country-select">Country</label><select id="country-select" class="dark-input"></select>
+        </div>
+        <div class="header-authors">
+            <span>Kitzberger Gabriel</span>
+            <span>Ziegler Daniel</span>
+            <span>Marić Vladimir</span>
+        </div>
+    </header>
 
-        <header class="dashboard-header">
-            <div class="header-content">
-                <h1>Information Visualisation</h1>
-                <h2>Group Submission 2</h2>
-            </div>
-            <div class="header-authors">
-                <span>Kitzberger Gabriel</span>
-                <span>Ziegler Daniel</span>
-                <span>Marić Vladimir</span>
-            </div>
-        </header>
+    <div class="dashboard-grid" id="main-grid">
+        <main class="card map-panel" id="viz-area">
+            <div id="map-container"></div>
+        </main>
 
-        <div class="dashboard-grid" id="main-grid">
+        <div class="card pc-panel" id="pc-panel">
+            <h3>Multivariate Comparison</h3>
+            <div id="pc-container"></div>
+        </div>
 
-            <aside class="card filter-panel" id="filters">
-                <h3>Climate Controls</h3>
-                <div id="variable-checkboxes"></div>
-                <div id="time-filters">
-                    <h3>Time Period</h3>
-
-                    <div class="filter-group">
-                        <label for="year-select">Year</label>
-                        <select id="year-select" class="dark-input"></select>
-                    </div>
-
-                    <div class="filter-group">
-                        <label for="month-select">Month</label>
-                        <select id="month-select" class="dark-input"></select>
-                    </div>
-                </div>
-                <div id="location-filters">
-                    <h3>Location</h3>
-                    <div class="filter-group">
-                        <label for="country-select">Focus Country</label>
-                        <select id="country-select" class="dark-input">
-                            </select>
-                    </div>
-                </div>
-                <div id="active-info">
-                    <small>Active: <b id="current-var-display">Temperature</b></small>
-                </div>
-            </aside>
-
-            <main class="card map-panel" id="viz-area">
-                <div id="map-container"></div>
-            </main>
-
-            <div class="card pc-panel" id="pc-panel">
-                <h3>Multivariate Comparison</h3>
-                <div id="pc-container"></div>
-            </div>
-
-            <div class="card history-panel" id="history-panel">
-                <h3>Climate History</h3>
-                <div id="line-container"></div>
-            </div>
+        <div class="card history-panel" id="history-panel">
+            <h3>Climate History</h3>
+            <div id="line-container"></div>
         </div>
     </div>
+</div>
 
-    <script src="js/worldMap.js"></script>
-    <script src="js/historyChart.js"></script>
-    <script src="js/pcPlot.js"></script>
-    <script src="js/main.js"></script>
+<script src="js/worldMap.js"></script>
+<script src="js/historyChart.js"></script>
+<script src="js/pcPlot.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>

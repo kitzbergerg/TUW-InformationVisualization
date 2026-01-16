@@ -28,7 +28,7 @@ const customBlue = d3.interpolateRgb("#6baed6", "#08306b");
 const customTeal = d3.interpolateRgb("#4db6ac", "#004d40");
 
 window.climateVariables = {
-    "2t": {label: "Temperature (2m)", unit: "K", color: d3.interpolateRdYlBu, reverse: true},
+    "2t": {label: "Temperature", unit: "K", color: d3.interpolateRdYlBu, reverse: true},
     "2d": {label: "Dewpoint Temp", unit: "K", color: d3.interpolateRdYlBu, reverse: true},
     "skt": {label: "Skin Temp", unit: "K", color: d3.interpolateRdYlBu, reverse: true},
     "tp": {label: "Total Precipitation", unit: "m", color: customBlue, reverse: false},
@@ -50,27 +50,26 @@ const monthNames = ["January", "February", "March", "April", "May", "June", "Jul
 let map, pcPlot, historyChart;
 
 /**
- * Creates the Radio Button Panel.
+ * Populates the Variable Dropdown in the Header.
  */
 function createFilterPanel() {
-    const container = d3.select("#variable-checkboxes");
-    container.html("");
+    const select = d3.select("#variable-select");
+    select.html(""); // Clear any existing options
 
+    // Iterate over variables to create <option> tags
     Object.keys(window.climateVariables).forEach((key) => {
         const conf = window.climateVariables[key];
-        const div = container.append("div").attr("class", "filter-item");
 
-        div.append("input")
-            .attr("type", "radio")
-            .attr("name", "climate-variable")
-            .attr("id", "chk-" + key)
+        select.append("option")
             .attr("value", key)
-            .property("checked", key === "2t")
-            .on("change", function () {
-                updateMapVariable(key);
-            });
+            .text(conf.label)
+            .property("selected", key === window.appState.activeVariable); // Set default selected
+    });
 
-        div.append("label").attr("for", "chk-" + key).text(" " + conf.label);
+    // Attach the change listener to the <select> element itself
+    select.on("change", function () {
+        const newVariable = this.value;
+        updateMapVariable(newVariable);
     });
 }
 
